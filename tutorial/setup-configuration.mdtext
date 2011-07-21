@@ -1,0 +1,37 @@
+title: Setup and Discovery of a Photon Project
+tutorial: Part 1
+tutorialnext: whatever-is-next
+tutorialnexttitle: The next title.
+description:
+In the first part of the Photon tutorial you will learn
+how to setup a project and discover its structure.
++++
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 7th of February, 2011
+content:
+
+Learning how a new system works is always a bit hard as you need to
+learn new concepts or figure out how the concepts you know are
+implemented by the authors of the system you discover. In this
+tutorial, we try to show you how to do things but also why we are
+doing them this way. You will have to write quite a lot of code and if
+we start to address a topic which may requires more in depth
+knowlegde, you will get links to the corresponding documentation
+topics. Do not worry if you are getting a bit lost, you can get the
+full tutorial up and running with just one command:
+
+    $ hnu init tutorial
+
+This will create a tutorial project with the full content of the
+tutorial, ready for you to explore it and test it. But, hey, let start
+slowly and discover all by ourselves, this is way more interesting.
+
+**At the end of the tutorial, you will have a great time tracker for your daily tasks with a [MongoDB][mongodb] storage.**
+
+## What is a Photon Project?
+
+Photon A project is a j
+
+
+[mongodb]: 

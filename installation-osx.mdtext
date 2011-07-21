@@ -1,0 +1,103 @@
+title: OSX Installation Guide of Mongrel2 and Photon
+author: Mehdi Kabab
+authorurl: http://pioupioum.fr/developpement/photon-php-installer-mac-os-x-snow-leopard.html
+Keywords: Mac OS X, Installation, Mongrel2
+date: 27th of February, 2011
+description:
+Step by step tutorial on how to install Photon and Mongrel2 with macports.
++++
+content:
+
+## Prerequisites
+
+To install **Photon**, you need to have **PHP 5.3** installed *using* **macports** with the `php5` port. **Mongrel2** requires SQLite et ZeroMQ[^2]. Also, if you haven't already installed it, you should install XDebug for PHP.  
+
+To check that you have everything installed as needed, just run in command line:
+
+    $ port installed sqlite3 zmq php5-xdebug php5-pcntl
+    The following ports are currently installed:
+      php5-xdebug @2.1.0_0 (active)
+      sqlite3 @3.7.5_0 (active)
+      zmq @2.0.10_0 (active)
+
+If one port is missing, just install it with the `port install` command:
+
+    sudo port install zmq
+
+You can install many ports in one go, for example:
+
+    sudo port install sqlite3 zmq php5-xdebug php5-pcntl
+
+## Mongrel2 installation under Mac OS X Snow Leopard
+
+At the moment, **Mongrel2** is not available in **macports**. This is not really a problem as you can easily download, compile and install it from the sources:
+
+    sudo port install wget
+    wget http://mongrel2.org/static/downloads/mongrel2-1.5.tar.bz2
+    tar xjvf mongrel2-1.5.tar.bz2
+    cd mongrel2-1.5/
+    sudo make clean macports install
+
+The `macports` Makefile option does not mean that **Mongrel2** will be installed in the macports environment, but that it will use the macports libraries for the build (normally `/opt/local/`). The binaries will be installed in `/usr/local/bin/`:
+
+    which m2sh
+    /usr/local/bin/m2sh
+
+## Photon installation
+
+The **Photon** installation is very simple as everything is done using [PEAR](http://dist.photon-project.com/ "Photon Distribution Channel").
+
+First, you need to add several PEAR channels for Photon, the **ØMQ** PHP extension, PHPUnit and their dependencies:
+
+    sudo pear channel-discover dist.photon-project.com
+    sudo pear channel-discover pear.zero.mq
+    sudo pear channel-discover pear.phpunit.de
+    sudo pear channel-discover pear.symfony-project.com
+    sudo pear channel-discover components.ez.no
+
+Do not worry about the Symfony and eZ Publish dependencies, these are needed for **PHPUnit** which requires a couple of components from them (for example the YAML parser of Symfony). You will not end up with these two solutions installed on your system.
+
+Then, just install **Photon** :
+
+    sudo pear install --alldeps photon/photon-alpha
+    sudo echo 'extension=http.so' > /opt/local/var/db/php5/http.ini
+    sudo echo 'extension=zmq.so' > /opt/local/var/db/php5/zmq.ini
+
+### Test your Photon installation
+
+Once the installation completed, Photon is available with the `hnu`[^3] command. Just to test, you can send the Photon unit tests. This will tell you if your system is compatible with Photon:
+
+    hnu selftest
+
+### Could not open input file: /usr/share/php/photon.php
+
+If you have the error `Could not open input file: /usr/share/php/photon.php`, this means that you are using Photon 0.0.5 or a previous version. If the 0.0.6 is not yet available, you can simply patch your installation:
+
+    cd ~/Downloads/
+    wget -O hnu.diff http://projects.ceondo.com/p/photon/source/ddiff/9acba649ae355aaf4b365a1f639961336ae6a323/
+    sudo patch -i hnu.diff `pear config-get bin_dir`/hnu
+    rm hnu.diff
+    cd -
+
+## Updating Photon
+
+Once again, updating Photon is really easy thanks to PEAR:
+
+    $ sudo pear update-channels
+    Update of Channel "dist.photon-project.com" succeeded
+    $ sudo pear upgrade photon/photon-alpha
+    downloading photon-0.0.5.tgz ...
+    Starting to download photon-0.0.5.tgz (3,937,334 bytes)
+    ...........................................................................done: 3,937,334 bytes
+    upgrade ok: channel://dist.photon-project.com/photon-0.0.5
+
+## Reading the Photon sources
+
+You can access the local Photon sources in the `/opt/local/lib/php` folder. If you are using TextMate, this is as simple as running:
+
+    mate -a `pear config-get php_dir`/photon*
+
+Another solution is to directly access the sources of the project on [its Indefero forge](http://projects.ceondo.com/p/photon/source/tree/develop/ "Photon Git Source Tree - The High Speed PHP Framework").
+
+[^2]: Read ZeroMQ. Also written ZeroMQ, 0MQ or ZMQ.
+[^3]: the commande name `hnu` comes from &#x210E;&nu;, the [photon](http://en.wikipedia.org/wiki/Photon "Photon - Wikipedia") in physics and optics.

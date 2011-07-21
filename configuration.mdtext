@@ -1,0 +1,95 @@
+title: Configuration of a Project
+description:
+The goal of the configuration is just to provide runtime 
+information to the system in form of an associative array.
++++
+author: Loïc d'Anterroches
+authorurl: http://xhtml.net
+date: 25th of February, 2011
+content:
+
+The configuration of an application with Photon is extremely simple,
+at the top of your PHP code, you load the configuration container
+class. By convention, you should load it as `Conf`. You can then get
+the configuration value with a simple call:
+
+    use photon\config\Container as Conf;
+    $foo = Conf::f('myapp_key', array('Sane default value'));
+
+What is really important to keep in mind:
+
+* Set **sane and consistent default values** for your application. 
+  The minimum number of configuration key,
+  the easier it will be for the end users to install your application
+  and reuse it.
+* Prefix the keys to avoid conflict with the core Photon configuration
+  variables and other applications. For example use the key
+  `myapp_admin` if you have created the `myapp` application.
+* Reuse as much as possible the core configuration keys, for example
+  the admin email address, `from_email`, `debug` settings, etc. This
+  will ensure consistent behaviour of the applications and ease of
+  configuration.
+* If you change a configuration key in a request, you need to set it
+  back just after, to handle correctly the next request.
+
+## Some Default Configuration Keys
+
+* `debug`: is the application running in debug mode.
+
+* `from_email`: default source email whent sending an email.
+
+* `template_folders`: array of folders from where the templates can be loaded.
+
+* `urls`: array of the URL mapping.
+
+* `base_urls`: the base for the URL mapping, you would put `'/foobar'` if your project is accessible as `http://yourdomain.tld/foobar/`.
+
+* `installed_apps`: array of installed apps in the project, for example `array('photonweb', 'myapp')`.
+
+* `installed_tasks`: associative array of installed tasks, for example: 
+
+~~~~~
+      array('photon_timeserver' => '\photon\task\TimeServer',
+             'photon_logger' => '\photon\task\Logger').
+~~~~~
+
+* `tmp_folder`: temp folder for the compiled templates.
+
+* `secret_key`: your unique to the project secret key to hmac
+  validation of the cookies and more. This is critical to have a
+  unique key per project installation.
+
+* `pid_file`: where the master server pid is written (`'./run.pid'`).
+
+## The Configuration File
+
+The configuration file is a simple PHP file but you can use anything
+you want which can then produce a simple PHP array and return it.
+
+Each method has pros/contras, but basically, the goal is simply to
+provide the application server with an array of key/value pairs at
+startup time. Nothing more.
+
+For examples:
+
+    <?php
+    $myconf = include 'path/to/config.php';
+    $myconf = parse_ini_file('path/to/config.ini');
+    $myconf = YourYAMLParser::load('path/to/config.yaml');
+    $myconf = array('debug' => true, 'photon_rocks' => true);
+    return $myconf;
+    // The configuration is then simply loaded by Photon this way:
+    Conf::load($myconf);
+
+What is interesting is that the process of getting the information can
+be as complex as needed, for example, you could have a configuration
+file which is going in fact to ask a central service its configuration
+based on the machine hostname.
+
+    <?php
+    $zoo = \myapp\config\Loader::getService('zookeeper');
+    $config = $zoo->giveMeMyConfig(gethostname()));
+    return $config;
+
+If this takes a second or two to run, this is fine as this is done
+only once at the startup of the __Photon__ process.

@@ -1,0 +1,382 @@
+title: Photon Template Engine
+description: 
+Photon has a high performance template engine with
+autoescaping, inheritance and more.
++++
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 9th of March, 2011
+content:
+
+The **Photon** template engine is very thin and very efficient.
+It compiles your templates to pure PHP code. Any text format
+can easily be generated with the engine. Internationalisation is
+supported out of the box.
+
+## Template Usage
+
+The usage is very simple and inspired by the Django way of doing
+things:
+
+    use photon\config\Container as Conf;
+    use photon\template;
+    
+    $renderer = new template\Renderer('myapplication/home.html', 
+                                      Conf::f('template_folders'));
+    $context = new template\Context(array('user' => 'Photon User',
+                                          'foo' => 'bar'));
+    $content = $renderer->render($context);
+
+The usage is very simple:
+
+1. You create a new template renderer with a given template.
+2. You generate a context which will be used to substitute the variables in the template. 
+3. You render the template with the given context.
+
+The `\photon\shortcuts` module provide some shortcuts to perform the
+common template operations, like rendering a template and using the
+content for a response in a single function call.
+
+## Base Template Syntax
+
+The syntax in a template is heavily inspired by the PHP language
+itself. In fact, the [PHP tokenizer][tokenizer] itself is used to
+parse the template. All the special elements or tags in a template
+start with `{` and end with `}`.
+
+The special elements are used to display variables, perform flow
+control, localize your templates and more.
+
+## Internationalisation 
+
+If you are writing an application that is then used by many people
+from different countries, you will translate the pages in different
+languages. This means that in the code you will do things like:
+
+    <?php echo _('Hello world'); ?>
+
+With the templating engine you can do:
+
+    {trans 'Hello world'}
+
+The power is coming when you need to translate and do substitution at
+the same time, for example, with the templating engine you can simply
+do:
+
+    {blocktrans}Hello {$user}, you are welcome!{/blocktrans}
+
+or a plural form:
+
+    {blocktrans $counter}I have one computer.{plural}I have 
+    {$counter} computers.{/blocktrans}
+
+You can read the [internationalisation documentation](./internationalisation) 
+to learn more on the subject.
+
+## Simple Template Example
+
+Templates are simple text files. You can use them to generate any
+text-based format like XHTML, XML, CSV, etc.
+
+Here is an example of a template:
+
+     {extends 'base.html'}
+     {block body}
+     <h2>{$list.name|upper}</h2>
+     {if $items}
+     <ol>
+     {foreach $items as $item}
+     <li>
+     <a href="{url 'todo_viewitem', $item.id}">{$item.item}</a>
+     </li>
+     {/foreach}
+     </ol>
+     {/if}
+     <p><a href="{url 'todo_additem', $list.id}">Create a new 
+     item</a> | 
+     <a href="{url 'todo_updatelist', $list.id}">Update 
+     the list</a></p>
+     {/block}
+
+What you can see the normal HTML tags together with the curly brackets
+`{}` delimiting the **tags** and **variables**. Exactly the same way
+as in PHP, variables start with the dollar sign `$`.
+
+## Template inheritance 
+
+The template inheritance is directly inspired by the 
+[Django template inheritance](http://www.djangoproject.com/documentation/templates/#template-inheritance),
+because when you start to use it, you want all your templating systems
+to have this feature. Here is an example of a base template `base.html`:
+
+
+    <!DOCTYPE>
+    <html>
+    <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Todo Test Application : {$page_title}</title>
+    </head>
+    <body>
+    <h1>{$page_title}</h1>
+    {block body}{/block}
+    <p><a href="{url 'todo_home'}">Home</a></p>
+    </body>
+    </html>
+
+You can see the definition `{block body}{/block}`, this means that here we
+have a block with the name `body` defined. Now, if you take the first
+template example, it was in the form:
+
+     {extends 'base.html'}
+     {block body}
+     Some content here...
+     {/block}
+
+What it means is that when rendering this *child* template, it will
+first load the `base.html` template and detect that the `body` block
+is available and also overwritten in the *child* template. The result
+is that the final content of the `body` block will be the one of the
+*child* template.
+
+If you define a block in the parent template and do not define it in
+the child, the content of the parent template is used. You can have
+multiple inheritance levels.
+
+## Variables
+
+A variable is assigned to the template in your PHP code and is then
+available in the template in the form:
+
+    {$myvariable}
+
+When the template engine find `{$myvariable}` it evaluates the content
+of the variable and replaces it with the result. For example, you put
+"Hello World!" in `myvariable`, the following template code:
+
+    <p>{$myvariable}</p>
+
+will render as:
+
+    <p>Hello World!</p>
+
+If you want to access the attributes of a variable representing an
+object, you can use a dot (`.`), for example:
+
+    {$user.last_name}
+
+## Filters 
+
+Variables can be modified, for example, in the template example you
+can find the fragment:
+
+    <h2>{$list.name|upper}</h2>
+
+This means, take the `name` attribute of the `list` variable, convert
+it to uppercase and display it.
+
+You can chain the filters to apply multiple filters on one
+variable. For example you could do:
+
+    <p>{$mytexte|upper|nl2br}</p>
+
+to convert your text in uppercase and then convert the new line
+character to HTML line break.
+
+Some filter take parameters, in that case you write the parameters
+after the name of the filter:
+
+    <p>{$modification_date|date:"Y-m-d"}</p>
+
+## Tags 
+
+Tags do not start with the dollar (`$`) sign, but directly with the name
+of the tag. In the above example, you can find the following tags:
+`extends`, `block`, `if`, `foreach`, `url`. Some of the tags have a
+corresponding closing tag `/if`, `/block`, but some other don't.
+
+Tags are more complex than variables as they can insert content in the
+template, change the rendering flow or loop on list of variables. See
+the reference below for more details.
+
+### `if`, `else` and `elseif`
+
+These are simple control structure tags to display conditional
+information. For example you can have:
+
+    {if $title}
+    The title is: {$title}.
+    {else}
+    We do not have a title.
+    {/if}
+
+or simply:
+
+    {if !empty($title)}The title is: {$title}.{/if}
+
+`if` and `elseif` accept a condition which is evaluated as PHP code,
+you can use all the builtin PHP functions in the conditions. The
+templating engine will not try to prevent you to do crazy things. The
+goal is to simplify your life, not to put you in a sandbox.
+
+### `foreach` 
+
+Foreach is used to iterate through an array or a class implementing
+the `[Iterator](http://www.php.net/spl)` interface. You can use it the
+same way as the `foreach` PHP control block.
+
+    {foreach $array as $key => $value}
+    {$key}: {$value}<br />
+    {/foreach}
+
+or:
+
+    {foreach $array as $value}
+    {$value}<br />
+    {/foreach}
+
+### `while` 
+
+The `while` loop is executed as long as the condition is true.
+
+    {while $skyisblue}The sky is blue.{/while}
+
+You should structure your code not to create infinite loops!
+
+### `assign`
+
+Assign a value to a variable. For example:
+
+    {assign $skyisblue = false}
+
+You can then use the `$skyisblue` variable later in your template. Any
+kind of function call can be made in the assignement. For example:
+
+    {assign $title = mb_strtoupper($title)}
+
+Now, `$title` is in upper case.
+
+If you want to concatenate several strings into one big, you can use
+the `~` (tilde) character:
+
+    {assign $title = $title1~' and '~$title2}
+
+This is the equivalent of the following PHP code:
+
+     $title = $title1.' and '.$title2;
+
+### `literal` 
+
+The literal block is used to display verbatim content. That is, the
+code will be displayed without interpretation:
+
+    The assign tag is used that way:
+
+    {literal}
+    {assign $title = mb_strtoupper($title)}
+    {/literal}
+
+This is useful when inserting JavaScript in your template.
+
+### `block` and `superblock` 
+
+See the template inheritance section later in this document.
+
+### `trans`, `plural` and `blocktrans` 
+
+See the [internationalisation documentation](./internationalisation) 
+to see how to use this tags
+to translate your application in multiple languages.
+
+### `include` 
+
+Include another template in the current template. If you are often
+using a piece of template and do not want to write it again and again
+and if you cannot use the template inheritance, you can include a
+template within another.
+
+    {include 'path/to/your/template.html'}
+
+The path is written the same way as what you would write to use a
+template from your PHP code. That is, you do not provide the full path
+to the file and the file will be searched through the folders defined
+in the `'template_folders'` configuration variable.
+
+**Important Restrictions** 
+
+The path is a fixed path. You cannot write:
+
+    {include $variable~"/path/to/template.html"}
+
+The include template cannot contain inheritance `block`.
+
+
+## Comments
+
+A comment is a piece of information that will not be displayed in the
+final rendering. 
+
+    {* This is a comment,
+       it can be over multiple lines and can contain
+    blocks {$variable} etc... *}
+
+Basically, before rendering the template, the text between `{*` and
+`*}` is removed and then the rendering starts. This allows the
+template creators to write down some notes that will not be seen in
+the final result. This is great to comment your template.
+
+
+## Security Against XSS
+
+All the variables are automatically escaped in the output. If you want
+to display the content of a variable without escaping, you need to
+mark it as safe from within the code (the best) or from within the
+template (not so good, you should not worry about those details in the
+templates).
+
+Mark a string as safe in the code:
+
+    $safe_string = \photon\template\SafeString::markSafe('<b>String with HTML</b>');
+
+Mark a safe string in the template with the `safe` output filter:
+
+    {$my_string|safe}
+
+## Builtin Variable Filters 
+
+### `upper`
+
+Convert a string to uppercase using the PHP [strtoupper](http://www.php.net/strtoupper) function.
+
+### `lower`
+
+Convert a string to lowercase using the PHP [strtolower](http://www.php.net/strtolower) function.
+
+### `count`
+
+Count the number of elements in an array using the PHP [count](http://www.php.net/count) function.
+
+### `md5`
+
+Returns the md5 hash of a string using the PHP [md5](http://www.php.net/md5) function.
+
+### `escape`
+
+### `strip_tags`
+
+### `escurl`
+
+### `capitalize`
+
+### `debug`
+
+### `dump`
+
+### `nl2br`
+
+### `trim`
+
+### `safe`
+
+Mark a string as safe.
+
+[tokenizer]: http://www.php.net/tokenizer

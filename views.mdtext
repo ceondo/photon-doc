@@ -1,0 +1,72 @@
+title: Photon Views
+description:
+Views are the core of Photon, it is where the content
+is generated for the clients.
++++
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 8th of March, 2011
+content:
+
+Please excuse me, first you need to know a dirty little secret, I have
+developed for the web, for HPC and even for Windows with the MFC, but
+still, after more than a decade, I still don't understand C. Not C the
+language, but C as in MVC — Model, View and Controller. I never
+understood what is the control people want in a web framework and even
+looking at the code of official MVC frameworks, I hardly find the
+control part.
+
+## UVA and UVP Framework
+
+**Photon** is a UV framework. In fact you have UVA and UVP but let
+me explain it a bit more:
+
+- **U**RL map: in the URL space of your domain/website under your 
+  control, you plug a
+- **V**iew. That is a bit of code which will be called when your client 
+  request the given URL.
+
+Then, you have the **A** views and the **P** views, sorry, no **UVB**
+at the moment.
+
+- **A**ctive views. Active views are the one which will directly send 
+  a response back to the client.
+- **P**assive views. Passive views are views not sending directly a 
+  response but delegating the work to other components. Yes, **Photon**
+  handles requests without answers!
+
+A view is a [callable][callable] taking two or more arguments and
+returning a response object if the view is an active view and simply
+`false` if the view is passive.
+
+    function activeView($request, $match)
+    {
+        return new \photon\http\Response('Hello World!', 'text/plain');
+    }
+    
+    function passiveView($request, $match)
+    {
+        let_somebody_else_do_the_work($request, $match);
+        return false;
+    }
+
+If you happen to know [Django][django], you will feel at ease, a lot
+of the Photon internals are inspired by Django.
+
+Now, you want to hook these views into your URL space, this means
+providing something like this as URL map:
+
+    array(
+          array('regex' => '#^/active$#',
+                'view' => 'activeView',
+                'name' => 'mywebapp_active',
+                ),
+          array('regex' => '#^/passive$#',
+                'view' => 'passiveView',
+                'name' => 'mywebapp_passive',
+                ),
+          );
+
+
+[django]: 
+[callable]:

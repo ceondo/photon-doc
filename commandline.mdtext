@@ -1,0 +1,75 @@
+title: hnu, the Command Line Manager
+description:
+Photon has the symbol hν, this is why the Photon manager is hnu.
++++
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 18th of February, 2011
+content:
+
+## Some Quick Reminders
+
+* Test your project: `hnu runtests`
+* Test your project with HTML code coverage: `hnu runtests --coverage-html=/tmp/photon`
+* Photon integrity check: `hnu selftest`
+* Start the development server:  `hnu testserver` (not a daemon, no tasks).
+
+## Command Line Use of Photon
+
+To ease the use and the development with **Photon** the `hnu` utility
+is provided. `hnu` is fully self documented:
+
+~~~~~
+$ hnu
+No command entered, nothing to do.
+Photon command line manager.
+
+Usage:
+  hnu [options]
+  hnu [options] <command> [options] [args]
+
+Options:
+  -v, --verbose         turn on verbose output
+  --conf=path/conf.php  where the configuration is to be found. By default,
+                        the configuration file is the config.php in the
+                        current working directory
+  -h, --help            show this help message and exit
+  --version             show the program version and exit
+
+Commands:
+  init        generate the skeleton of a new Photon project in the current
+              folder
+  testserver  run the development server to test your application
+  runtests    run the tests of your project. Uses config.test.php as
+              default config file
+  selftest    run the Photon self test procedure
+  server      run or command the Photon servers
+~~~~~
+
+For example, if you want to have some help on the `server` command, just run:
+
+~~~~~
+$ hnu server -h
+run or command the Photon servers
+
+Usage:
+  hnu [options] server [options]
+  hnu [options] server [options] <command> [options]
+
+Options:
+  --all           run the subcommand for all the running Photon processes
+  --server-id=id  run the subcommand for the given server id. If you start
+                  a process, it will receive this server id. The default
+                  subcommand is "start".
+  --wait=timeout  waiting time in seconds for the answers. Needed if your
+                  servers are under heavy load
+  -h, --help      show this help message and exit
+
+Commands:
+  start       start a Photon server
+  stop        stop one or more Photon server
+  new         start a new Photon server child
+  less        stop the oldest Photon server child
+  list        list the running Photon servers
+  childstart  used internal to fork worker children
+~~~~~

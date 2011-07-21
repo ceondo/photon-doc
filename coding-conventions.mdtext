@@ -1,0 +1,239 @@
+title: Coding Standards and Conventions
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 18th of February, 2011
+description:
+The coding standards and conventions of Photon. How to write some nice 
+looking and well structured code.
++++
+content:
+
+## The Conventions Are Simple
+
+The base is the [PEAR Coding Standards][pearcs] with some special
+cases. Read the code of **Photon** to have a good feeling of what is
+done.
+
+### Use namespaces
+
+Each class must live in a namespace, the namespace is in lower case
+and reflects the directory structure. For example:
+
+    namespace yourapplication\views;
+    
+    class Base
+    {
+        public function foo($request, $match)
+        {
+            return false;
+        }
+    }
+    
+    class Other {}
+    
+
+is available in the file `src/yourapplication/views.php`, with the
+`src` directory in your include path. This way, you can have many
+classes in one file. The one file per class approach is not used as it
+is extremely annoying when you want to have *just a small class* for a
+data structure or as a little utility tool. For people used to code in
+Python, this is effectively following the Python convention. This
+convention as proved itself extremely robust over the years.
+
+If you can throw an exception from your code, use an exeception from
+your namespace or a [predefined exception](http://www.php.net/manual/en/spl.exceptions.php) 
+when it makes sense.
+
+    namespace yourapplication\yourlib;
+    class Exception extends \Exception {}
+    class Foo
+    {
+        public function bar($what)
+        { 
+            // It will throw the \yourapplication\yourlib\Exception which
+            // can be caught with:
+            // catch (\Exception $e) {}
+            // or to be fined grained:
+            // catch (\yourapplication\yourlib\Exception $e) {}
+            throw new Exception();
+        }
+    }
+
+### No Interfaces and No Type Hints
+
+If you unit test your code, these simply do not make sense. Type
+hinting and interfaces, because of the dynamic nature of PHP, are
+evaluated at runtime, this means, that each time you access a method,
+function the check will be made. You basically check the same thing,
+again and again, days after days.
+
+So, just unit test correctly your code, this will catch all the
+errors.
+
+If you can come up with a good reason to use type hints and
+interfaces, feel free to come on the list and discuss about it. I am
+against them at the moment, only because I have yet to find a good
+reason to use them.
+
+### Minimize the Number of Variables
+
+Do not do things like:
+
+    $a = my_function_foo($input);
+    $b = other_function($a);
+
+This makes a copy of the data in `$a` and this makes the understanding
+of the code harder because you have more variables to track in your
+head.
+
+    $b = other_function(my_function_foo($input));
+
+### Leave a Blank Line Before a Return Statement
+
+On a small function like the one below, it may looks futile, but as
+soon as your functions start to have more than 5 lines, this makes the
+`return` statement pop out and improves a lot the reading speed of the
+code.
+
+    function foo_bar($bing)
+    {
+        if (0 === strlen($bing)) { 
+
+            return 'no bing!';
+        }
+        $bing = mb_strtoupper($bing);
+     
+        return $bing;
+    }
+
+### Keep a Space Before and After the Dot in Concatenation
+
+This is again a readability issue, the added space allow quick in mind
+tokenization of the code.
+
+    $good = $old . 'foo' . substr($another, 1, 4) . ' bar';
+    $bad = $old.'foo'.substr($another, 1, 4).' bar';
+
+### Indent Ternary Operator When a Bit Long
+
+This allow very fast scanning of the conditions and feels like a
+compact if/then/else block.
+
+    $foo = ('abc' === $foobar)
+        ? 'abc' . 'foo' . substr($another, 1, 4) . ' bar'
+        : 'not abc' . 'foo' . substr($another, 1, 4) . ' bar';
+
+### Use an English Sentence as Exception Message
+
+When you throw an exception from your code, the message must be a
+clean and understandable message. It must start with an upper case
+letter and end with a period. For example:
+
+    throw new Exception(sprintf('The system was not able to open the file: %s.',
+                                realpath($thefile)));
+
+The trace will provide the coder with the needed information to debug
+and fix the problem and the clean message will make your end users
+feel good.
+
+### Make Your If Statements Fast
+
+It is a bit faster and clearer to put the constant first and to do an
+exact equality match.
+
+    if ('this is' === $good) {
+        if ($this_is == 'bad') {
+            // This will also automatically prevent you
+            // to do by mistake an assignement in the if
+            // block.
+        }
+    }
+
+### Clean After Yourself
+
+At the end of a request, **Photon** will not clean the global
+scope. If you are opening a file, do not forget to close it. If you
+open a connection which is not supposed to be permanent, close it too.
+
+### Take Care of your Memory Usage
+
+**Photon** is running as a daemon without a maximum memory usage, if
+your application is reading data from the outside world and you have
+no idea how big the data will be, you should pay attention. A good way
+to avoid memory ballooning is to store the data in a memory stream
+with swapping. For example:
+
+    $fp = fopen('php://temp/maxmemory:5242880', 'r+');
+    fputs($fp, generate_unknown_large_output());
+    rewind($fp);
+    // Operate on the data, for example check the size:
+    $info = fstat($fp);
+    $size = $info['size'];
+    fclose($fp);
+
+Here, you have the data in the `$fp` and if the data is bigger than
+5MB, it will be swapped on disk. If below 5MB, as everything is done in
+memory, it is really fast.
+
+
+### Unit Test Everything
+
+Really everything. You can easily run your tests from the command
+line, it will save your day in the future. 
+[Read more about testing][testing].
+
+### Keep the Logic Within 45 Lines
+
+Your functions should not be more than 45 lines in length. Sometimes
+you cannot really do so, but try. Long functions are hard to tests but
+also hard to follow. 45 lines is usually what you can see in one go in
+a text editor.
+
+### Be Positive in Default Arguments
+
+Ensure that the default argument is `true` not `false`. For example, compare:
+
+~~~~~
+function runNegative($what, $payload, $raw=false)
+{
+    if (!$raw) {
+        $payload = json_encode($payload);
+    } 
+    ...
+}
+
+function runPositive($what, $payload, $encode=true)
+{
+    if ($encode) {
+        $payload = json_encode($payload);
+    } 
+    ...
+}
+~~~~~
+
+It is more natural to follow the positive way than the negative. 
+
+### Do Not Include the Trailing Slash in Folders
+
+If your function returns a directory/folder path, do not include the
+trailing slash.
+
+~~~~~
+function thisIsBad()
+{
+    return '/var/log/photon/';
+}
+function thisIsGood()
+{
+    return '/var/log/photon';
+}
+~~~~~
+
+This is the convention followed by all the functions, methods in PHP
+and Unix tools.
+
+
+[pearcs]: http://pear.php.net/manual/en/standards.php "The PEAR Coding Standards"
+[testing]: ./testing "How to write and run Photon tests."
+
+

@@ -1,0 +1,80 @@
+title: Comparing Photon to NodeJS, Django, PHP+FastCGI and Erlang
+description:
+Photon is different than the usual PHP way, but not necessarily that
+different from other systems or frameworks. Here is a list of what
+it the same and what is not.
++++
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 7th of March, 2011
+content:
+
+The key comparison metrics are the following:
+
+* asynchronous work;
+* number of moving parts;
+* robustness;
+* reconfiguration;
+* code upgrade;
+
+## PHP as FastCGI
+
+[PHP][php] as FastCGI is running normally behind Apache or NGINX. This
+is currently one of the most effecient way to deploy a PHP application
+in production when you have limited resources. Even more comfortable
+from an operation point of view is to use PHP as module in Apache as
+you get less moving parts, but it requires a bit more memory when
+handling simultaneous requests. This setup is used in production by
+millions of websites.
+
+PHP, by itself, is a blocking language, that is, in each FastCGI
+child, everything is run in a single thread, single process way and
+you need to spawn work to another subsystem if you want to do
+asynchronous work.
+
+### Advantages
+
+* code upgrade is done by a simple restart of the main fast cgi process. For PHP, this is really fast and can be done without cutting a working connection with [FPM][fpm].
+* memory and runtime robustness, if your script goes beyond the PHP limits, it fails preventing the complete server crash.
+
+### Issues
+
+* no asynchronous work, a long polling connection will lock one of your running children. 
+* reconfiguration to handle the load is performed at the webserver level.
+* you need two components, the webserver and PHP as fast cgi.
+
+
+## Erlang Based Webserver
+
+The problem with an [Erlang][erlang] based webserver is that you can
+do everything and well. The Erlang VM is a true non blocking VM, that
+is, it will not even lock with a function call like this one (in
+pseudo code):
+
+    while (true) {
+        $i++
+    }
+
+The lite process running this function will be stopped using the
+*fairness* algorithm of Erlang to let other work. You can also hot
+load new code in the VM, reconfigure on the fly, distribute the load
+on several cores but also over the LAN. You can do everything nicely
+in a message passing way. The only problem for me is the limited
+ecosystem around it. As it is slowly growing, it may end up taking
+over the world.
+
+So, if you can develop in Erlang, go this way, you will not find
+better.
+
+## Django
+
+I take here [Django][django] as a generic Python (or Ruby for this
+matter) framework running as a large multithreaded application
+server. Technically, they all work the same way.
+
+... work in progress ...
+
+[php]: http://www.php.net
+[fpm]:
+[erlang]:
+[django]:

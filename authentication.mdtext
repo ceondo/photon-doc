@@ -1,0 +1,59 @@
+title: Authentication Mechanisms
+author: Loïc d'Anterroches
+authorurl: http://xhtml.net
+date: 12th of March, 2011
+description:
+Answering the "Who are you?" question the best way
+we can.
++++
+content:
+
+
+
+
+## Low Level Information Flux
+
+This was created to define the workflow of the authentication
+mechanisms. This starts from simple to complex workflow. Once
+authenticated, a client is associated a session.
+
+The different states of a user are:
+
+* ANONYMOUS - Not authenticated U:ANO
+* AUTHENTICATED - Authenticated with active session U:AUTH
+* TWOFACTOR - Two factor authenticated with active session U:2FACT
+* REMEMBERED - The authenticated session is older than a given age U:REM
+
+The different states of a user session are:
+
+* ANONYMOUS - No authentication is associated to the session S:ANO
+* ACTIVE - Client is authenticated S:ACT
+* REMEMBERED - remembered is just when the last authentication was 
+  performed more than a configurable delay ago. S:REM
+
+The information exchange is normally:
+
+* login/password
+* otp
+* 
+
+
+### Simple Login
+
+1. User access a page without a session but which requires authentication. U:ANO
+2. User is redirected to a login page. U:ANO
+3. User input login + password.
+4. If matches U:AUTH + S:ACT 
+5. Redirect to the page.
+
+### Two Factor Authentication
+
+Same as simple login, but the access page requires a U:2FACT, at the
+end of step 4, forward to another "login" which in fact requires to
+input another bit of information. If failure, the user stay at the
+U:AUTH level, if not, go to U:2FACT.
+
+Note, we need to expire the two factor authentication at some points
+in time.
+
+

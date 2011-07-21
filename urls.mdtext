@@ -1,0 +1,214 @@
+title: Photon URL Map Definition
+description:
+The URL map is doing the correspondance between the URL of your
+website and the views in your application.
++++
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 8th of March, 2011
+content:
+
+When a request comes from Mongrel2 to Photon, Mongrel2 has already
+done some work for us by extracting the path of the request and
+parsing the headers. From these details, Photon forward the request to
+the right view — the piece of code doing the work to build the answer
+to the client. **The selection of the view based on the parsed request by Mongrel2 is defined in the URL map**.
+
+The URL map is just a set of regular expressions run against the [path][path].
+
+      foo://example.com:8042/over/there?name=ferret#nose
+      \_/   \______________/\_________/ \_________/ \__/
+       |           |            |            |        |
+    scheme     authority       path        query   fragment
+
+Note that in the case of an HTTP request, the query, the authority and
+the scheme are provided either implicitely or explicitely in the
+parsed headers. The fragment is never available to Mongrel2 and
+Photon.
+
+## Simple URL Map Format
+
+The simple format is a flat array of regular expressions matching
+against the path. The expressions are run in order and the first match
+win. For example, the URL Map of a simple *Hello World* application could be:
+
+    array(
+          array('regex' => '#^/$#',
+                'view' => array('\helloworld\views\Views', 'index'),
+                'name' => 'helloworld_index',
+               ),
+          array('regex' => '#^/(.*)$#',
+                'view' => array('\helloworld\views\Views', 'you'),
+                'name' => 'helloworld_you',
+               ),
+         );
+
+Here you have 2 defined views, the `helloworld_index` and the
+`helloworld_you` views. Each view is simply an associative array with
+the following mandatory keys:
+
+* `regex`: The regular expression to match against the path. By
+  convention we use `#` as delimiting character instead of `/`. The
+  regex is given directly to [preg_match][pregmatch]
+* `view`: A [PHP callable][callable], usually as you group your views
+  in classes, this will be an array with the class and the method but
+  to return just a simple text line (for a robots.txt file) you could
+  directly use a closure.
+* `name`: The name of the view, by convention a string following the
+  format `yourapp_yourview`.
+
+## View Parameters
+
+Sometimes, you have a generic view which can be fined tuned with a
+parameter. For example, the `photon\views\Template::simple` view is
+defined as:
+
+    class Template
+    {
+        public function simple($request, $match, $template)
+        {
+            return shortcuts\Template::RenderToResponse($template, array(), $request);
+        }
+    }
+
+You can see the `$template` parameter. This can be directly defined in
+your URL map, for example:
+
+    array(
+          array('regex' => '#^/$#',
+                'view' => array('\photon\views\Template', 'simple'),
+                'name' => 'helloworld_index',
+                'params' => 'helloworld/home.html',
+               ),
+          ... 
+          );
+
+The value of `params` is given as third parameter to the view.
+
+## Trees of Views
+
+When you develop a project, you normally have several applications
+glued together into a single URL space. If you end up with 1000 views
+and a flat URL space, this would mean that the last view in the list
+would be matched after 1000 `preg_match` calls. Not very efficient and
+hard to maintain such a list. To avoid such issue, you can create a
+tree of regular expressions, that is, you can hook a simple URL map at
+a given point in another map:
+
+    array(
+          array('regex' => '#^/hello#',
+                'sub' => array(
+                         array('regex' => '#^/$#',
+                               'view' => array('\helloworld\views\Views', 'index'),
+                               'name' => 'helloworld_index',
+                              ),
+                         array('regex' => '#^/(.*)$#',
+                               'view' => array('\helloworld\views\Views', 'you'),
+                               'name' => 'helloworld_you',
+                             ),
+                         )
+               ),
+          array('regex' => '#^/$#',
+                'view' => array('\coreapp\views\Base', 'home'),
+                'name' => 'yourproject_home',
+               ),
+           );
+
+Here you can see that the `helloworld_index` view will in fact match
+`/hello/` whereas the `yourproject_home` will match `/`. The `sub`
+approach is very practical as your [project structure][structure]
+contains normally theses files:
+
+    yourproject/urls.php
+    yourproject/apps/documentation/urls.php
+    yourproject/apps/blog/urls.php
+    yourproject/apps/coreapp/urls.php
+
+This means that you you put in your main `urls.php` something like:
+
+    return array(
+                 array('regex' => '#^/$#',
+                       'view' => array('\coreapp\views\Base', 'home'),
+                       'name' => 'yourproject_home',
+                      ),
+                 array('regex' => '#^/weblog#',
+                       'sub' => include __DIR__ . '/apps/blog/urls.php'
+                      ),
+                 array('regex' => '#^/doc#',
+                       'sub' => include __DIR__ . '/apps/documentation/urls.php'
+                      ),
+                 array('regex' => '#^/core#',
+                       'sub' => include __DIR__ . '/apps/coreapp/urls.php'
+                      ),
+               );
+
+Your mapping ends up being simple, easy to read and effecient. Do not
+be afraid by the includes, they have no performance impact at all as
+they are loaded at the very start of the Photon server and never
+again. Yes, an application server provides a lot of performance goodies.
+
+## Anchoring A Photon Project In A Larger URL Space
+
+Sometimes, you do not want to serve the full domain with a Photon
+project, for example, you only want to provide service to
+`yourdomain.com/weblog`. In this case, you need to define the
+`base_urls` key in your configuration file with the `/weblog` value
+(note the absence of trailing slash):
+
+    return array(
+                 ....
+                 'base_urls' => '/weblog',
+                );
+
+Pay attention that if you have a `/weblog` anchor, you also need to
+have the corresponding route in your Mongrel2 configuration, for
+example:
+
+    Host(name="localhost", 
+         routes={'/weblog': photon_handler}
+        )
+
+
+## Getting The Path From The View Name
+
+The URL map is used both ways, first to find the view matching an URL
+but also to find the URL of a view when you want to redirect a user to
+a given place. Suppose your user is submitting a form and in case of
+success you want to redirect it to a thank you page. As your
+application can be hooked at any place in the URL space, you do not
+know at the time of writing what will be the URL of the the thank you
+page:
+
+    function register($request, $match)
+    {
+        if ('POST' == $request->method) {
+            $form = new RegisterForm($request->POST);
+            if ($form->isValid()) {
+                $form->save();
+                $url = '/thank/you';
+                return new \photon\http\response\Redirect($url);
+            }
+        } else {
+            $form = new RegisterForm();
+        }
+        return shortcuts\Template::RenderToResponse('myapp/register.html', 
+                                                    array('form' => $form), 
+                                                    $request);
+    }
+
+Here you have the hard coded `/thank/you`, but you can do better, you
+can let Photon find the URL based on the `name` of the view.
+
+    $url = \photon\core\URL::forView('myapp_thankyou');
+
+If you have a view named `myapp_thankyou` the path will automatically
+be generated, this, even if this view is inside a `sub` or if you have
+defined a special `base_urls` in your configuration file. The net
+result is that **all the URLs are defined in the URL map**.
+
+
+
+[path]: http://labs.apache.org/webarch/uri/rfc/rfc3986.html#components "Uniform Resource Identifier (URI): Generic Syntax"
+[pregmatch]: http://php.net/preg_match
+[callable]: http://php.net/manual/en/language.pseudo-types.php#language.types.callback
+[structure]: ./project "Photon Project Structure Overview"

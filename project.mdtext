@@ -1,0 +1,82 @@
+title: Project File Structure
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 18th of February, 2011
+description:
+Organization of a Photon project. This includes the directory and file
+structure.
++++
+content:
+
+## Everything Is Done By Convention
+
+Conventions rule the directory structure. This means that in practice
+you can use any directory or file structure you want, but your code
+will be easier to maintain if you follow the conventions. The use of
+conventions over hard rules enforced at the code level means less code
+to maintain and most of the time better performance.
+
+## Structure of a Website Implemented With Photon
+
+A website or a web application is a collection of components or `apps`
+glued together in an URL space. For example, your website could be
+composed of a series of small applications:
+
+- a weblog;
+- a series of reference articles;
+- a home page listing the latest posts and articles;
+- a micro blogging feed;
+- a bookmark manager.
+
+Of course, you may write each application by yourself or reuse
+applications from third parties, but the key is **an application is
+small**. An application just does one thing and does it well. You can have
+200 applications in your website it will not affect performance at
+all.
+
+**Photon** allows you to easily run background tasks. For example, a
+background task could be a small chat server which will notify each
+client when a message arrives or take care of sending an email to
+all your friends.
+
+**So, each web application is project composed of many apps which may provide tasks**.
+
+## Base Structure of a Project
+
+~~~~~
+myproject/config.php - Production configuration file
+myproject/config.test.php - Testing configuration file
+myproject/urls.php - URL map
+myproject/templates - Custom templates
+myproject/www - Assets like images, Javascripts, CSS
+myproject/apps - Applications
+myproject/apps/helloworld - Hello World application
+~~~~~
+
+## Base Structure of an App
+
+~~~~~
+helloworld/urls.php - URL map
+helloworld/views.php - Views
+helloworld/tests.php - Unit tests
+helloworld/templates/helloworld - Application templates
+helloworld/www/media/helloworld - Assets like images, Javascripts, CSS
+helloworld/data - Optional data
+helloworld/models.php - Optional models
+helloworld/task.php - Optional tasks
+~~~~~
+
+Only the `tests.php`, `urls.php` and the `views.php` are in practice
+needed. That is, you want to display something *the views* at a given
+point in the URL space of your project *the URL map*.
+
+If your application is only providing some tasks, you may have just
+two files, `tests.php` and `task.php`.
+
+Yes, a task is very simple, it is basically just a small piece of code
+launched and monitored in the background by **Photon**. It listens on
+a given [ZeroMQ][zmq] socket for some work and send the results either
+directly as a synchronous task or not as an asynchronous task.
+
+[zmq]: http://www.zeromq.org
+

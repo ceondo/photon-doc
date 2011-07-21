@@ -1,0 +1,283 @@
+title: Internationalisation and localisation in your code and templates
+template: doc
+content:
+
+> WARNING: THIS DOCUMENTATION HAS NOT BEEN UPDATED FOR PHOTON YET,
+> BUT THE PRINCIPLES ARE THE SAME.
+
+The internationalization (also known as i18n) and localization are an
+easy step with **Pluf** as long as you start from the beginning to
+think about it.
+
+Learn more about [internationalization on Wikipedia](http://en.wikipedia.org/wiki/Internationalization_and_localization).
+
+What is really important to note, is that you can already apply all
+the following steps to make your code translation ready and translate
+only later. In fact, you should **definitely have a translation ready code** 
+as the work to do so is small if done from the very beginning.
+
+## In your configuration file ##
+
+You need to provide the list of languages supported by your
+application and load the translation middleware. The translation
+middleware `Pluf_Middleware_Translation` must be loaded just after the
+session middleware if you are using it. 
+
+For example:
+
+    $cfg['languages'] = array('en', 'fr', 'fr_QC', 'es');
+    $cfg['middleware_classes'] = array(
+         'Pluf_Middleware_Session',
+         'Pluf_Middleware_Translation',
+    );
+
+The translation middleware can use session data to find which language
+is to be returned to the user, that is why you need to put it after
+the session middleware. 
+
+The first available language in the language list, here `en` (English)
+will be the default language of the application if no other languages
+match the preferences of the visitor.
+
+## Determination of the visitor language ##
+
+In order of priority, the language is determined using the following
+sequence:
+
+1. The `pluf_language` session key.
+2. The `pluf_language` cookie (you can change the name with the `lang_cookie` configuration key).
+3. The user agent `Accept-Language` request header.
+4. The first language in the configuration file.
+
+In the particular case of a connected user, if the `pluf_language`
+session key is not yet populated, the `$user->language` property of
+the user will be used to first set the `pluf_language` session key.
+
+## In the templates ##
+
+You only need to use one function or one block to translate your
+templates. The function is used when you need only to translate one
+line without substitution of variables and the block is used when you
+need either or both of substitution variables and plural forms.
+
+Consider the following template fragment which is not translated:
+
+    <h1>Pluf internationalization</h1>
+    <p>To translate your code, use one of 
+       the {$methods.count()} method(s):</p>
+    <ul>
+    {foreach $methods as $method}
+       <li>Name: {$method.name}, 
+           Description: {$method.description}.</li>
+    {/foreach}
+    </ul>
+    </html>
+
+Now the version ready for translation:
+
+    <h1>{trans "Pluf internationalization"}</h1>
+    {assign $n_methods = $methods.count()}
+    <p>{blocktrans $n_methods}To translate your code, use 
+       the following method:{plural}To translate your code, use 
+       one of the {$n_methods} methods:{/blocktrans}</p>
+    <ul>
+    {foreach $methods as $method}
+       <li>{blocktrans}Name: {$method.name}, 
+       Description: {$method.description}.{/blocktrans}</li>
+    {/foreach}
+    </ul>
+    </html>
+
+### The **trans** function ###
+
+The simple translation function: `trans` is used the following way:
+
+    {trans "My string to translate"}
+
+or
+
+    {trans 'My string to translate'}
+
+You cannot use variables within the string. This is perfect for small
+strings in your templates.
+
+### The **blocktrans** block ###
+
+The block has **two** different ways to be called, one for the plural
+form and one *normal* form.
+
+#### The normal form ####
+
+A simple example without variable subsitution:
+
+    {blocktrans}This is a long text 
+    that can be over multiple lines and that
+    can be translated later.{/blocktrans}
+
+You can also substitute variables within the string, but you cannot
+call another function or block.
+
+    {blocktrans}I like {$fruit}, {$vegetable} 
+    and {$place}.{/blocktrans}
+
+`{$fruit}`, `{$vegetable}` and `{$place}` will be replaced with their
+corresponding value as in the rest of your template. 
+
+#### The plural form ####
+
+Example of use without substitution of variables:
+
+    {blocktrans $counter}This is the singular 
+    form.{plural}This is the plural form.
+    {/blocktrans}
+
+Depending of the value of `$counter`, the first and unique parameter
+given to the block, the singular or the plural form will be selected.
+
+In exactly the same way as the normal form, you can substitute
+variables like that:
+
+    {blocktrans $counter}I have one {$pcbrand}.
+    {plural}I have {$counter} computers from several brands 
+    including {$pcbrand}.
+    {/blocktrans}
+
+As you can see, this is pretty flexible.
+
+## In your PHP code ##
+
+In your code, you can use two function to translation your code:
+
+ * `__`: For example `__('My simple string')`
+ *  `_n`: For example `_n('Singular form.', 'Plural form.', $counter)`
+
+The first function is to handle simple normal cases and the second one
+to handle plural cases. If you want to perform variable substitution,
+you can use the `sprintf` function like that:
+
+    $place = 'Berlin';
+    echo sprintf(__('I like %s.'), $place);
+    echo sprintf(__('I like %s.'), 'Berlin');
+
+See the [documentation of sprintf](http://www.php.net/sprintf).
+
+If you have a key indexed array of values you want to substitute in a
+string, you can use the special `Pluf_Translation::sprintf` function.
+
+For example:
+
+    $values = array('place' => 'Berlin',
+                    'fruit' => 'apple',
+                    'computer' => 'IBM');
+    echo Pluf_Translation::sprintf(__('I have one %%fruit%%, one %%computer%% in %%place%%.'), $values);
+
+This will display:
+
+    I have one apple, one IBM in Berlin.
+
+Or if you have translated the string `'I have one %%fruit%%, one %%computer%% in %%place%%.'` in French:
+
+    J'ai une apple, un IBM à Berlin.
+
+## Updating/Creating language files ##
+
+The translations are store in [GNU Gettext PO files](http://www.gnu.org/software/gettext/). This storage format
+allows to take benefit of all the set of utilities to parse the code
+to extract the strings and to perform the translations. 
+
+The `.po` files are stored as **YourApp/locale/LANG/yourapp.po**. For
+example, the French translation of Pluf is in
+**Pluf/locale/fr/pluf.po**. The particular form of a language, for
+example the British English is stored in the **en_GB** folder.
+
+The search order of the .po file is so that it will first try to find
+the corresponding territory version, for example **fr_QC** and if it
+is not available, it will default to use the main version **fr**. If
+none are available, it will not load any language file.
+
+### Extract the strings from the templates ###
+
+The templates are not using a standard *gettext* format, so the first
+step is to convert your templates into a version ready to be consumed
+by the gettext extract tool `xgettext`.
+
+Go in your application folder, for example:
+
+    $ cd ~/myprojects/web/MyApp
+
+Then run the following command:
+
+    $ php /path/to/pluf/extracttemplates.php ./conf/myapp.php ./gettexttemplates
+
+You will see that a list of files is extracted. Looking into the newly
+created `gettexttemplates` folder, you will see all your templates
+with a `.php` extension and inside them, only the strings from the
+`trans` function and the `blocktrans` blocks.
+
+These files can now be parsed by `xgettext`.
+
+
+### Create the main .pot file ###
+
+The `.pot` file is the template `.po` file used as a basis for the
+other languages. This is basically a `.po` file without
+translations. This is the only file you should create automatically
+with `xgettext`.
+
+Create first a `MyApp/locale` folder. Your template file will be
+`MyApp/locale/myapp.pot`.
+
+Go in your application folder:
+
+    $ cd ~/myprojects/web/MyApp
+
+And run the following commands, each command must be on a single line,
+the backslash (\\) is here only for the presentation at the exception
+of the one just before the (;) which is needed:
+
+    $ xgettext -o myapp.pot -p ./MyApp/locale --force-po --from-code=UTF-8 \
+          --keyword --keyword=__ --keyword=_n:1,2 -L PHP *.php
+    $ find ./ -iname "*.php" -exec xgettext  -o myapp.pot -p ./MyApp/locale \
+          --from-code=UTF-8 -j --keyword --keyword=__ --keyword=_n:1,2 \
+          -L PHP {} \;
+
+You can learn more about **xgettext** by typing `$ man xgettext` on
+your system.
+
+### Create a new translation for a language ###
+
+Now consider you want to make the base French translation. Create a
+folder `MyApp/locale/fr` and open [Poedit](http://www.poedit.net/).
+
+In the file menu, select *New catalog from POT file* and select the
+`MyApp/locale/myapp.pot` file. 
+
+Then go in the *Catalog > Settings...* menu and in the *Project Info*
+tab, input the followings:
+
+ * Project name and version: **MyApp 1.0**
+ * Team: **French**
+ * Language: **French**
+ * Country: **France**
+ * Charset: **UTF-8**
+ * Source code charset: **UTF-8**
+ * Plural forms: **nplurals=2; plural=n>1;**
+
+Then in the *Paths* tab, input `../../` and click on Ok and in the
+file menu save the file as `/MyApp/locale/fr/myapp.po`
+
+If you wonder what are the plural forms, [the plural forms manual](http://www.gnu.org/software/gettext/manual/html_node/Plural-forms.html) is available.
+
+### Update a translation ###
+
+Now, if you update your code, you need to have the new strings in your
+`.po` file. What you have to do is first, update or recreate the
+`.pot` file by first extracting the strings from the templates and
+then running the *xgettext* utility.
+
+Afterwards, open you `.po` file in **Poedit** and click on *Catalog >
+Update from POT file...*. You will have some info, if everything looks
+in order, for example that you do not have suddenly a lot less
+strings, click on Ok. **It is always good to make a backup of your .po file before updating it from a .pot file**.
+
+Now you can translate the new strings and update the old ones.

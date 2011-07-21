@@ -1,0 +1,23 @@
+title: Scaling a Photon Web Service
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 5th of March, 2011
+description:
+Key points and tips on how to scale your web service with Photon. 
++++
+content:
+
+## Scaling is Hard but Fun
+
+Scaling is hard because it most of the time comes under stress, but it
+is fun, because we love challenges. The recommendations are following
+the excellent article by [James Hamilton on Internet-scale services][ddiss]. 
+You should read it before continuing.
+
+> * Expect failures. A component may crash or be stopped at any time. Dependent components might fail or be stopped at any time. There will be network failures. Disks will run out of space. Handle all failures gracefully.
+> * Keep things simple. Complexity breeds problems. Simple things are easier to get right. Avoid unnecessary dependencies. Installation should be simple. ailures on one server should have no impact on the rest of the data center.
+> * Automate everything. People make mistakes. People need sleep. People forget things. Automated processes are testable, fixable, and therefore ultimately much more reliable. Automate wherever possible. 
+
+
+
+[ddiss]: http://www.usenix.org/event/lisa07/tech/full_papers/hamilton/hamilton_html/ "On Designing and Deploying Internet-Scale Services by James Hamilton"

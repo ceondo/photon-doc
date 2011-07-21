@@ -1,0 +1,75 @@
+title: Logging in Photon Web Service
+author: Loïc d'Anterroches
+authorurl: http://danterroches.org
+date: 5th of March, 2011
+description:
+Log everything, you can always rotate the logs. But the day you 
+have performance problems, you will be happy to have the logs.
++++
+content:
+
+## Know Where You Are
+
+Logging is great, you should log everything to have data to know where
+you are. This is critical for capacity planning and predict failure.
+
+## Photon Logging Tools
+
+Built with **Photon** you have the `photon\log` module providing the
+tools to log information in your system. 
+
+## Performance Logging
+
+In your configuration file, before the `return` statement, put:
+
+    \photon\log\Log::setLevel('PERF');
+
+This will set the log level to log performance messages. Restart your
+Photon server and access a page of your project. Then, just run:
+
+    cat /tmp/photon.log
+
+You may need to replace `/tmp` with the path to your tmp folder set in
+your configuration file. You should see something like:
+
+    2011-03-05T18:15:00+0100 [PERF] ["photon.dispatch","9ce308b1-bf00-40aa-bed0-7bef4c6e426a",0.068230867385864,["GET","\/handlertest\/"]]
+    2011-03-05T18:15:00+0100 [PERF] ["photon.process_request","9ce308b1-bf00-40aa-bed0-7bef4c6e426a",0.078766107559204,1600]
+
+The performance log lines are following the format:
+
+* *identifier*: `photon.key` or `yourapp.key`;
+* *uuid*: the unique id of the request, it is available as `$request->uuid` in your views;
+* *microtime*: the microtime to perform the operation;
+* *payload*: a payload to track more information.
+
+In your views, if you want to log a performance information, do the following:
+
+    use photon\log\Timer as Timer;
+    use photon\log\Log as Log;
+
+    function yourView($request, $match)
+    {    
+
+        Timer::start('your_app.your_view');
+        long_running_process($params);
+        Log::perf(array('your_app.long_running_process', 
+                        $request->uuid, 
+                        Timer::stop('your_app.your_view'),
+                        $params));
+    }
+
+The `Timer::start`, `Timer::stop` and `Log::perf` calls are none
+intensive operations, so you can call them everywhere you think it
+could be good to have some runtime performance timing.
+
+It is important to always log the uuid of the request. If you send a
+request to a backend, pass the uuid along, this will allow you to
+track the source of the rquest and see the path of your request in
+your stack.
+
+        
+
+
+
+
+
