@@ -1,0 +1,14 @@
+domain: doc.photon-project.com
+template: kurohe
+extraheaders:
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
++++
+top:
+<div>
+This is an extra div added at the top of each page.
+</div>
++++
+bottom:
+<p>Copyright (c) foo, 2011 at the bottom of each page.</p>
++++
+search: yes
